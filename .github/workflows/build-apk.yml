@@ -45,6 +45,8 @@ jobs:
 
       - name: Build web assets
         run: |
+          echo "=== ดู structure ทั้งหมด ==="
+          find . -type f | head -50
           mkdir -p www/js
           cp maeyom-partner-repo/index.html www/
           cp maeyom-partner-repo/js/config.js www/js/
