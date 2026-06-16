@@ -46,22 +46,11 @@ jobs:
       - name: Build web assets
         run: |
           mkdir -p www/js
-          # ลอง path ต่างๆ
-          if [ -f "index.html" ]; then
-            cp index.html www/
-            cp js/config.js www/js/
-            cp js/api.js www/js/
-            cp js/partner-app.js www/js/
-            cp js/partner-menu.js www/js/
-          elif [ -f "maeyom-partner-repo/index.html" ]; then
-            cp maeyom-partner-repo/index.html www/
-            cp maeyom-partner-repo/js/config.js www/js/
-            cp maeyom-partner-repo/js/api.js www/js/
-            cp maeyom-partner-repo/js/partner-app.js www/js/
-            cp maeyom-partner-repo/js/partner-menu.js www/js/
-          else
-            echo "ไม่พบไฟล์!" && find . -name "index.html" && exit 1
-          fi
+          cp maeyom-partner-repo/maeyom-partner-repo/index.html www/
+          cp maeyom-partner-repo/maeyom-partner-repo/js/config.js www/js/
+          cp maeyom-partner-repo/maeyom-partner-repo/js/api.js www/js/
+          cp maeyom-partner-repo/maeyom-partner-repo/js/partner-app.js www/js/
+          cp maeyom-partner-repo/maeyom-partner-repo/js/partner-menu.js www/js/
 
       - name: Add Android platform
         run: npx cap add android
@@ -75,10 +64,48 @@ jobs:
           rm -f android/app/src/main/res/drawable/ic_launcher_background.xml
           rm -f android/app/src/main/res/drawable/ic_launcher_foreground.xml
 
-          cp maeyom-partner-repo/icon-512.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          cp maeyom-partner-repo/icon-512.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-          cp maeyom-partner-repo/ic_launcher_xxhdpi.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          cp maeyom-partner-repo/ic_launcher_xxhdpi.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-          cp maeyom-partner-repo/ic_launcher_xhdpi.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp maeyom-partner-repo/ic_launcher_xhdpi.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-          cp maeyom-partner-repo/ic_launcher_hdpi.png
+          cp maeyom-partner-repo/maeyom-partner-repo/icon-512.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cp maeyom-partner-repo/maeyom-partner-repo/icon-512.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_xxhdpi.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_xxhdpi.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_xhdpi.png android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_xhdpi.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_hdpi.png android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_hdpi.png android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_mdpi.png android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp maeyom-partner-repo/maeyom-partner-repo/ic_launcher_mdpi.png android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+
+          find android/app/src/main/res -name "launch_background.xml" | xargs -I{} sed -i 's/#ffffff/#4A0E0E/g; s/#FFFFFF/#4A0E0E/g' {} 2>/dev/null || true
+
+      - name: Add permissions to AndroidManifest
+        run: |
+          sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET" \/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" \/>\n    <uses-permission android:name="android.permission.VIBRATE" \/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
+
+      - name: Fix Kotlin duplicate
+        run: |
+          cat >> android/app/build.gradle << 'GRADLEEOF'
+
+          configurations.all {
+              resolutionStrategy {
+                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0'
+              }
+          }
+          GRADLEEOF
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: maeyom-partner-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
