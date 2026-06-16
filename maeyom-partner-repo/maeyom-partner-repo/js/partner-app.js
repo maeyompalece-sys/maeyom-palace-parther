@@ -308,18 +308,18 @@ function orderCard(o, actions) {
     const total = items.reduce((s, i) => s + (parseFloat(i.price) * parseInt(i.quantity)), 0);
 
     const itemsHtml = items.map(i => `
-        <div class="order-item-row">
-            <span class="order-item-name">${i.quantity}× ${esc(i.name)}${i.note ? `<span class="order-item-note">📝 ${esc(i.note)}</span>` : ''}</span>
-            <span class="order-item-price">฿${fmt(parseFloat(i.price) * parseInt(i.quantity))}</span>
+        <div class="oc-item-row">
+            <span class="order-item-name">${i.quantity}× ${esc(i.name)}${i.note ? `<span class="oc-item-note">📝 ${esc(i.note)}</span>` : ''}</span>
+            <span style="color:var(--stone);font-size:12px;white-space:nowrap">฿${fmt(parseFloat(i.price) * parseInt(i.quantity))}</span>
         </div>
     `).join('');
 
     const notesHtml = o.notes
-        ? `<div class="order-notes">📝 ${esc(o.notes)}</div>`
+        ? `<div class="oc-notes">📝 ${esc(o.notes)}</div>`
         : '';
 
     const actionsHtml = actions.length > 0 ? `
-        <div class="order-actions">
+        <div class="oc-actions">
             ${actions.map(a => actionBtn(a, o.id)).join('')}
         </div>
     ` : '';
@@ -330,17 +330,17 @@ function orderCard(o, actions) {
 
     return `
     <div class="order-card status-${o.status}" data-order-id="${o.id}">
-        <div class="order-card-head">
+        <div class="oc-head">
             <div>
-                <div class="order-num">#${esc(o.order_number || o.id)}</div>
-                <div class="order-time">${dateStr} · ${timeStr}${tableInfo ? ' · ' + tableInfo : ''}</div>
+                <div class="oc-num">#${esc(o.order_number || o.id)}</div>
+                <div class="oc-time">${dateStr} · ${timeStr}${tableInfo ? ' · ' + tableInfo : ''}</div>
             </div>
             <span class="order-badge ${meta.badgeClass}">${meta.icon} ${meta.label}</span>
         </div>
-        <div class="order-customer">👤 ${esc(o.customer_name || 'ลูกค้า')}${o.customer_phone ? ' · 📞 ' + esc(o.customer_phone) : ''}</div>
-        <div class="order-items">
+        <div class="oc-cust">👤 ${esc(o.customer_name || 'ลูกค้า')}${o.customer_phone ? ' · 📞 ' + esc(o.customer_phone) : ''}</div>
+        <div class="oc-items">
             ${itemsHtml}
-            <div class="order-total-row">
+            <div class="oc-total">
                 <span>รวม</span>
                 <span>฿${fmt(total)}</span>
             </div>
@@ -480,7 +480,7 @@ function switchTab(tab) {
     document.querySelectorAll('.tab').forEach(t =>
         t.classList.toggle('active', t.dataset.tab === tab)
     );
-    document.querySelectorAll('.orders-pane').forEach(p =>
+    document.querySelectorAll('.pane').forEach(p =>
         p.classList.toggle('active', p.id === 'pane-' + tab)
     );
 }
@@ -503,9 +503,9 @@ function showToast(msg, type = 'info') {
 
 function emptyState(icon, title, sub) {
     return `<div class="empty-state">
-        <div class="empty-state-icon">${icon}</div>
-        <div class="empty-state-title">${title}</div>
-        <div class="empty-state-sub">${sub}</div>
+        <div class="es-icon">${icon}</div>
+        <div class="es-title">${title}</div>
+        <div class="es-sub">${sub}</div>
     </div>`;
 }
 

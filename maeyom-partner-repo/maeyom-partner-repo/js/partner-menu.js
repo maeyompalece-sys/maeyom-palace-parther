@@ -282,45 +282,43 @@ function renderMenuList() {
     if (!el) return;
 
     if (PMENU.items.length === 0) {
-        el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:12px;color:#ADADAD;">
+        el.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;gap:12px;">
             <div style="font-size:52px;">🍽️</div>
             <div style="font-size:17px;font-weight:600;color:#6B6B6B;">ยังไม่มีเมนูในร้าน</div>
-            <div style="font-size:14px;text-align:center;line-height:1.5;">กด "+ เพิ่มเมนูใหม่" เพื่อเพิ่มรายการอาหาร<br>เมนูจะแสดงบนเว็บโรงแรมทันที</div>
+            <div style="font-size:14px;text-align:center;line-height:1.6;color:#ADADAD;">กด "+ เพิ่มเมนูใหม่"<br>เมนูจะแสดงบนเว็บโรงแรมทันที</div>
         </div>`;
         return;
     }
 
-    el.innerHTML = PMENU.items.map(item => `
-        <div style="background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);overflow:hidden;display:flex;align-items:stretch;border-left:4px solid ${item.is_available ? '#C9A861' : '#D1D5DB'};${item.is_available ? '' : 'opacity:.65;'}" data-item-id="${item.id}">
-            <div style="width:80px;min-height:80px;flex-shrink:0;background:#F8F4EC center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:32px;color:#ADADAD;${item.image_url ? `background-image:url('${item.image_url}')` : ''}">
-                ${item.image_url ? '' : '🍽️'}
-            </div>
-            <div style="flex:1;padding:12px 12px 10px;">
-                <div style="font-weight:700;color:#651713;font-size:15px;margin-bottom:2px;">${esc(item.name)}</div>
-                ${item.description ? `<div style="font-size:12px;color:#6B6B6B;margin-bottom:6px;">${esc(item.description)}</div>` : ''}
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                    <span style="font-size:18px;font-weight:700;color:#C9A861;font-family:'Cormorant Garamond',serif;">฿${fmt(item.price)}</span>
-                    <div style="display:flex;gap:6px;">
-                        <button style="padding:5px 10px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:${item.is_available ? '#D1FAE5' : '#FEE2E2'};color:${item.is_available ? '#065F46' : '#991B1B'};"
-                            onclick="toggleMenuItem('${item.id}', ${!item.is_available})">
-                            ${item.is_available ? '🟢 เปิด' : '🔴 ปิด'}
-                        </button>
-                        <button style="padding:5px 10px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:#EDE9FE;color:#4C1D95;" onclick="openMenuItemModal('${item.id}')">✏️</button>
-                        <button style="padding:5px 10px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:#FEE2E2;color:#991B1B;" onclick="deleteMenuItem('${item.id}', '${esc(item.name)}')">🗑️</button>
+
+    el.innerHTML = PMENU.items.map(item => {
+        const avail = !!item.is_available;
+        const imgStyle = item.image_url
+            ? `background-image:url('${item.image_url}');background-size:cover;background-position:center;`
+            : '';
+        return `<div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;display:flex;align-items:stretch;width:100%;box-sizing:border-box;border-left:4px solid ${avail?'#C9A861':'#D1D5DB'};opacity:${avail?1:.65};" data-item-id="${item.id}">
+            <div style="width:88px;min-width:88px;height:88px;flex-shrink:0;background:#F8F4EC;${imgStyle}display:flex;align-items:center;justify-content:center;font-size:34px;color:#ADADAD;">${item.image_url?'':'🍽️'}</div>
+            <div style="flex:1;padding:10px;min-width:0;display:flex;flex-direction:column;gap:4px;overflow:hidden;">
+                <div style="font-weight:700;color:#651713;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(item.name)}</div>
+                ${item.description?`<div style="font-size:11px;color:#6B6B6B;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(item.description)}</div>`:''}
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:auto;">
+                    <span style="font-size:16px;font-weight:700;color:#C9A861;white-space:nowrap;">฿${fmt(item.price)}</span>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <button style="padding:4px 8px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:${avail?'#D1FAE5':'#FEE2E2'};color:${avail?'#065F46':'#991B1B'};" onclick="toggleMenuItem('${item.id}',${!avail})">${avail?'🟢':'🔴'}</button>
+                        <button style="padding:4px 8px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#EDE9FE;color:#4C1D95;" onclick="openMenuItemModal('${item.id}')">✏️</button>
+                        <button style="padding:4px 8px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;background:#FEE2E2;color:#991B1B;" onclick="deleteMenuItem('${item.id}','${esc(item.name)}')">🗑️</button>
                     </div>
                 </div>
-                <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap;">
-                    ${item.is_recommended ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:#FEF3C7;color:#92400E;">⭐ แนะนำ</span>' : ''}
-                    ${item.is_spicy ? '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:#FEE2E2;color:#991B1B;">🌶️ เผ็ด</span>' : ''}
-                    <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;background:${item.is_available ? '#D1FAE5' : '#F3F4F6'};color:${item.is_available ? '#065F46' : '#6B7280'};">
-                        ${item.is_available ? '✅ พร้อมขาย' : '⏸️ ปิดชั่วคราว'}
-                    </span>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    ${item.is_recommended?'<span style="padding:2px 6px;border-radius:8px;font-size:10px;font-weight:700;background:#FEF3C7;color:#92400E;">⭐ แนะนำ</span>':''}
+                    ${item.is_spicy?'<span style="padding:2px 6px;border-radius:8px;font-size:10px;font-weight:700;background:#FEE2E2;color:#991B1B;">🌶️ เผ็ด</span>':''}
+                    <span style="padding:2px 6px;border-radius:8px;font-size:10px;font-weight:700;background:${avail?'#D1FAE5':'#F3F4F6'};color:${avail?'#065F46':'#6B7280'};">${avail?'✅ เปิด':'⏸️ ปิด'}</span>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
-
 // ============================================================
 // 📝 Modal เพิ่ม/แก้ไข
 // ============================================================
