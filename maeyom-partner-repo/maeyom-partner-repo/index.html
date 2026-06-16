@@ -226,5 +226,14 @@ body { font-family: 'Sarabun', sans-serif; background: var(--cream); color: var(
 <script src="js/api.js"></script>
 <script src="js/partner-app.js"></script>
 <script src="js/partner-menu.js"></script>
+<script>
+  const _origStart = window.startApp;
+  window.startApp = function() {
+    _origStart();
+    setTimeout(() => {
+      if (typeof initPartnerMenu === 'function') initPartnerMenu();
+    }, 300);
+  };
+</script>
 </body>
 </html>
