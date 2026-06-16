@@ -45,14 +45,23 @@ jobs:
 
       - name: Build web assets
         run: |
-          echo "=== ดู structure ทั้งหมด ==="
-          find . -type f | head -50
           mkdir -p www/js
-          cp maeyom-partner-repo/index.html www/
-          cp maeyom-partner-repo/js/config.js www/js/
-          cp maeyom-partner-repo/js/api.js www/js/
-          cp maeyom-partner-repo/js/partner-app.js www/js/
-          cp maeyom-partner-repo/js/partner-menu.js www/js/
+          # ลอง path ต่างๆ
+          if [ -f "index.html" ]; then
+            cp index.html www/
+            cp js/config.js www/js/
+            cp js/api.js www/js/
+            cp js/partner-app.js www/js/
+            cp js/partner-menu.js www/js/
+          elif [ -f "maeyom-partner-repo/index.html" ]; then
+            cp maeyom-partner-repo/index.html www/
+            cp maeyom-partner-repo/js/config.js www/js/
+            cp maeyom-partner-repo/js/api.js www/js/
+            cp maeyom-partner-repo/js/partner-app.js www/js/
+            cp maeyom-partner-repo/js/partner-menu.js www/js/
+          else
+            echo "ไม่พบไฟล์!" && find . -name "index.html" && exit 1
+          fi
 
       - name: Add Android platform
         run: npx cap add android
