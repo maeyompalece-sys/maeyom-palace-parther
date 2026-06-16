@@ -145,11 +145,25 @@ function startApp() {
     document.getElementById('hdr-shop-name').textContent = PARTNER.name || PARTNER.id;
     setOnlineStatus(true);
 
+    // ขอ permission แจ้งเตือน
+    requestNotificationPermission();
+
     // โหลด orders ครั้งแรก
     fetchOrders(true);
 
     // เริ่ม polling ทุก 5 วินาที
     startPolling();
+}
+
+function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') return;
+    if (Notification.permission === 'denied') return;
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            showToast('✅ เปิดการแจ้งเตือนแล้ว', 'success');
+        }
+    });
 }
 
 function showScreen(name) {
@@ -191,6 +205,7 @@ function checkNewOrders(newOrders) {
     if (incoming.length > 0) {
         playNotificationSound();
         showNewOrderAlert();
+        sendPushNotification(incoming.length);
     }
     PSTATE.lastOrderIds = new Set(newOrders.map(o => o.id));
 }
@@ -411,6 +426,22 @@ function showNewOrderAlert() {
     const el = document.getElementById('new-order-alert');
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+function sendPushNotification(count) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    const title = '🔔 มีออเดอร์ใหม่' + (count > 1 ? ' ' + count + ' รายการ' : '!');
+    const body  = 'กรุณาเข้าแอพเพื่อรับออเดอร์';
+    try {
+        new Notification(title, {
+            body,
+            icon: 'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
+            badge: 'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
+            tag: 'new-order',
+            renotify: true,
+        });
+    } catch(e) {}
 }
 
 function playNotificationSound() {
