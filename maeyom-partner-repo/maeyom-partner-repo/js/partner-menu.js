@@ -26,35 +26,44 @@ function initPartnerMenu() {
 // เพิ่ม tab "เมนูของฉัน" เข้าไปใน .tabs และ pane ใหม่
 // ============================================================
 function renderMenuTab() {
-    // เพิ่ม Tab button
-    const tabs = document.querySelector('.tabs');
-    if (tabs && !document.querySelector('[data-tab="menu"]')) {
-        const btn = document.createElement('div');
-        btn.className = 'tab';
-        btn.dataset.tab = 'menu';
-        btn.innerHTML = '🍽️ เมนูของฉัน';
-        btn.addEventListener('click', () => switchTab('menu'));
-        tabs.appendChild(btn);
+    // Tab มีอยู่แล้วใน index.html — แค่ bind event
+    const existingTab = document.querySelector('[data-tab="menu"]');
+    if (existingTab) {
+        existingTab.addEventListener('click', () => switchTab('menu'));
+    } else {
+        // ถ้าไม่มี ค่อยสร้างใหม่
+        const tabs = document.querySelector('.tabs');
+        if (tabs) {
+            const btn = document.createElement('div');
+            btn.className = 'tab';
+            btn.dataset.tab = 'menu';
+            btn.innerHTML = '🍽️ เมนูของฉัน';
+            btn.addEventListener('click', () => switchTab('menu'));
+            tabs.appendChild(btn);
+        }
     }
 
-    // เพิ่ม Pane
-    const app = document.getElementById('screen-app');
-    if (app && !document.getElementById('pane-menu')) {
-        const pane = document.createElement('div');
+    // Pane มีอยู่แล้วใน index.html — inject เนื้อหาเข้าไป
+    let pane = document.getElementById('pane-menu');
+    if (!pane) {
+        pane = document.createElement('div');
         pane.className = 'orders-pane';
         pane.id = 'pane-menu';
-        pane.innerHTML = `
-            <div style="padding:12px;display:flex;gap:8px;background:#fff;border-bottom:1px solid #EDE5D3;position:sticky;top:104px;z-index:30;">
-                <button class="btn-add-menu" id="btn-add-menu-item" onclick="openMenuItemModal(null)">
-                    + เพิ่มเมนูใหม่
-                </button>
-            </div>
-            <div class="orders-list" id="menu-item-list"></div>
-        `;
-        app.appendChild(pane);
+        const app = document.getElementById('screen-app');
+        if (app) app.appendChild(pane);
     }
 
-    // เพิ่ม Modal เพิ่ม/แก้ไขเมนู
+    // ใส่เนื้อหาเข้าไปใน pane เสมอ
+    pane.innerHTML = `
+        <div style="padding:12px;display:flex;gap:8px;background:#fff;border-bottom:1px solid #EDE5D3;position:sticky;top:104px;z-index:30;">
+            <button class="btn-add-menu" id="btn-add-menu-item" onclick="openMenuItemModal(null)">
+                + เพิ่มเมนูใหม่
+            </button>
+        </div>
+        <div class="orders-list" id="menu-item-list"></div>
+    `;
+
+    // เพิ่ม Modal
     if (!document.getElementById('menu-item-modal')) {
         document.body.insertAdjacentHTML('beforeend', menuItemModalHTML());
     }
