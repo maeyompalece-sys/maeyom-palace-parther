@@ -7,6 +7,7 @@ const PARTNER = {
     id: null,
     name: null,
     token: null,
+    logoUrl: null,
 };
 
 const PSTATE = {
@@ -88,15 +89,17 @@ async function handleLogin() {
     try {
         const result = await API.call('partnerLogin', { partnerId, password });
         // result: { partnerId, partnerName, token }
-        PARTNER.id    = result.partnerId;
-        PARTNER.name  = result.partnerName;
-        PARTNER.token = result.token;
+        PARTNER.id      = result.partnerId;
+        PARTNER.name    = result.partnerName;
+        PARTNER.token   = result.token;
+        PARTNER.logoUrl = result.logoUrl || '';
 
         // บันทึก session
         localStorage.setItem('partner_session', JSON.stringify({
-            id: PARTNER.id,
-            name: PARTNER.name,
-            token: PARTNER.token,
+            id:      PARTNER.id,
+            name:    PARTNER.name,
+            token:   PARTNER.token,
+            logoUrl: PARTNER.logoUrl,
             savedAt: Date.now(),
         }));
 
@@ -130,9 +133,10 @@ function tryRestoreSession() {
             localStorage.removeItem('partner_session');
             return;
         }
-        PARTNER.id    = saved.id;
-        PARTNER.name  = saved.name;
-        PARTNER.token = saved.token;
+        PARTNER.id      = saved.id;
+        PARTNER.name    = saved.name;
+        PARTNER.token   = saved.token;
+        PARTNER.logoUrl = saved.logoUrl || '';
         startApp();
     } catch (e) {}
 }
@@ -144,6 +148,16 @@ function startApp() {
     showScreen('app');
     document.getElementById('hdr-shop-name').textContent = PARTNER.name || PARTNER.id;
     setOnlineStatus(true);
+
+    // แสดง logo ร้านใน header
+    const logoWrap = document.getElementById('hdr-logo');
+    if (logoWrap) {
+        if (PARTNER.logoUrl) {
+            logoWrap.innerHTML = `<img src="${PARTNER.logoUrl}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.3);">`;
+        } else {
+            logoWrap.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>`;
+        }
+    }
 
     // ขอ permission แจ้งเตือน
     requestNotificationPermission();

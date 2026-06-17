@@ -55,12 +55,12 @@ function renderMenuTab() {
 
     // ใส่เนื้อหาเข้าไปใน pane เสมอ
     pane.innerHTML = `
-        <div style="padding:12px;display:flex;gap:8px;background:#fff;border-bottom:1px solid #EDE5D3;position:sticky;top:104px;z-index:30;">
-            <button class="btn-add-menu" id="btn-add-menu-item" onclick="openMenuItemModal(null)">
+        <div style="padding:10px;background:#fff;border-bottom:1px solid #EDE5D3;position:sticky;top:0;z-index:30;">
+            <button id="btn-add-menu-item" onclick="openMenuItemModal(null)" style="width:100%;padding:12px;background:linear-gradient(135deg,#651713,#4A0E0E);color:#E0C892;border:none;border-radius:10px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.02em;">
                 + เพิ่มเมนูใหม่
             </button>
         </div>
-        <div class="orders-list" id="menu-item-list"></div>
+        <div id="menu-item-list" style="padding:10px;display:flex;flex-direction:column;gap:9px;"></div>
     `;
 
     // เพิ่ม Modal
