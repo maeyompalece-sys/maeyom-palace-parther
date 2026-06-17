@@ -86,6 +86,9 @@ async function handleLogin() {
     btn.textContent = 'กำลังเข้าสู่ระบบ...';
     showLoading(true);
 
+    // ขอ permission แจ้งเตือนตอนกดปุ่ม login (ต้องการ user gesture)
+    requestNotificationPermission();
+
     try {
         const result = await API.call('partnerLogin', { partnerId, password });
         // result: { partnerId, partnerName, token }
@@ -158,9 +161,6 @@ function startApp() {
             logoWrap.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>`;
         }
     }
-
-    // ขอ permission แจ้งเตือน
-    requestNotificationPermission();
 
     // โหลด orders ครั้งแรก
     fetchOrders(true);
