@@ -107,6 +107,8 @@ async function handleLogin() {
         }));
 
         startApp();
+        // ✅ Register FCM Token หลัง login สำเร็จ
+        registerFCMTokenToServer();
     } catch (err) {
         errEl.textContent = err.message || 'รหัสร้านค้าหรือรหัสผ่านไม่ถูกต้อง';
         errEl.style.display = 'block';
@@ -654,6 +656,46 @@ function emptyState(icon, title, sub) {
         <div class="es-title">${title}</div>
         <div class="es-sub">${sub}</div>
     </div>`;
+}
+
+// ============================================================
+// 🔔 FCM Token Registration
+// ============================================================
+async function registerFCMTokenToServer() {
+    try {
+        // ใช้ Firebase Messaging ถ้ามี (ผ่าน Service Worker)
+        if (window.firebase && window.firebase.messaging) {
+            const messaging = window.firebase.messaging();
+            const fcmToken = await messaging.getToken({
+                vapidKey: 'YOUR_VAPID_KEY' // optional สำหรับ web
+            });
+            if (fcmToken && PARTNER.id) {
+                await API.call('registerFCMToken', {
+                    partnerId: PARTNER.id,
+                    token: PARTNER.token,
+                    fcmToken: fcmToken,
+                });
+                console.log('[FCM] Token registered:', fcmToken.slice(0,20) + '...');
+            }
+        } else {
+            // Capacitor FCM — ดึง token จาก native
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseMessaging) {
+                const { FirebaseMessaging } = window.Capacitor.Plugins;
+                await FirebaseMessaging.requestPermissions();
+                const { token } = await FirebaseMessaging.getToken();
+                if (token && PARTNER.id) {
+                    await API.call('registerFCMToken', {
+                        partnerId: PARTNER.id,
+                        token: PARTNER.token,
+                        fcmToken: token,
+                    });
+                    console.log('[FCM] Native token registered');
+                }
+            }
+        }
+    } catch(e) {
+        console.warn('[FCM] register failed:', e.message);
+    }
 }
 
 function esc(s) {
