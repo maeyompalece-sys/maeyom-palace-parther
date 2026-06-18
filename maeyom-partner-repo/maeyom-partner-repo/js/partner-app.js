@@ -270,6 +270,44 @@ function stopPolling() {
 }
 
 // ============================================================
+// 🔄 Manual Refresh — ปุ่มรีเฟรชออเดอร์
+// ============================================================
+async function manualRefresh(btn) {
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ กำลังโหลด...';
+    }
+    // อัปเดต hint
+    document.querySelectorAll('.refresh-hint').forEach(el => {
+        el.textContent = '⟳ กำลังโหลด...';
+    });
+
+    try {
+        await fetchOrders(false);
+        // อัปเดตเวลา
+        const now = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.querySelectorAll('.refresh-hint').forEach(el => {
+            el.textContent = '✅ อัปเดตแล้ว ' + now;
+        });
+        setTimeout(() => {
+            document.querySelectorAll('.refresh-hint').forEach(el => {
+                el.textContent = '⟳ refresh อัตโนมัติทุก 5 วินาที';
+            });
+        }, 3000);
+    } catch(e) {
+        document.querySelectorAll('.refresh-hint').forEach(el => {
+            el.textContent = '❌ โหลดล้มเหลว';
+        });
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🔄 รีเฟรช';
+        }
+    }
+}
+window.manualRefresh = manualRefresh;
+
+// ============================================================
 // 🎨 Rendering
 // ============================================================
 function renderAll() {
