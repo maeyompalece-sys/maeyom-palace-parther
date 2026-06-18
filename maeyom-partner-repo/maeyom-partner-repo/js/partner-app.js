@@ -172,10 +172,29 @@ function startApp() {
     startPolling();
 }
 
-function requestNotificationPermission() {
+async function requestNotificationPermission() {
+    // ✅ Capacitor Local Notifications (APK)
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        try {
+            const { LocalNotifications } = window.Capacitor.Plugins;
+            if (LocalNotifications) {
+                const perm = await LocalNotifications.requestPermissions();
+                if (perm.display === 'granted') {
+                    showToast('✅ เปิดการแจ้งเตือนแล้ว', 'success');
+                } else {
+                    showToast('⚠️ กรุณาเปิดการแจ้งเตือนในการตั้งค่า', 'info');
+                }
+                return;
+            }
+        } catch(e) { console.warn('[NotifPerm Capacitor]', e.message); }
+    }
+    // ✅ Web Notification API (browser/PWA)
     if (!('Notification' in window)) return;
     if (Notification.permission === 'granted') return;
-    if (Notification.permission === 'denied') return;
+    if (Notification.permission === 'denied') {
+        showToast('⚠️ กรุณาเปิดการแจ้งเตือนในการตั้งค่าเบราว์เซอร์', 'info');
+        return;
+    }
     Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
             showToast('✅ เปิดการแจ้งเตือนแล้ว', 'success');
