@@ -27,7 +27,7 @@ jobs:
       - name: Init npm and install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/local-notifications
+          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/local-notifications @capacitor-firebase/messaging
 
       - name: Create capacitor.config.json
         run: |
@@ -43,8 +43,10 @@ jobs:
             "plugins": {
               "LocalNotifications": {
                 "smallIcon": "ic_stat_icon_config_sample",
-                "iconColor": "#651713",
-                "sound": "beep.wav"
+                "iconColor": "#651713"
+              },
+              "PushNotifications": {
+                "presentationOptions": ["badge", "sound", "alert"]
               }
             }
           }
@@ -63,8 +65,79 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Add google-services.json
+        run: |
+          cat > android/app/google-services.json << 'GSEOF'
+          {
+            "project_info": {
+              "project_number": "712092316084",
+              "project_id": "maeyom-5312d",
+              "storage_bucket": "maeyom-5312d.firebasestorage.app"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:712092316084:android:ed0d22e71ca59661c1c2e1",
+                  "android_client_info": {
+                    "package_name": "com.maeyom.partner"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "AIzaSyB92Hzwx05HaqY62MBa5sE15jthegjoYTE"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          GSEOF
+
+      - name: Add Firebase & FCM to build.gradle
+        run: |
+          # Project-level build.gradle
+          cat >> android/build.gradle << 'GRADLEEOF'
+
+          buildscript {
+              dependencies {
+                  classpath 'com.google.gms:google-services:4.4.1'
+              }
+          }
+          GRADLEEOF
+
+          # App-level build.gradle
+          cat >> android/app/build.gradle << 'GRADLEEOF'
+
+          apply plugin: 'com.google.gms.google-services'
+
+          dependencies {
+              implementation platform('com.google.firebase:firebase-bom:32.7.0')
+              implementation 'com.google.firebase:firebase-messaging'
+          }
+
+          configurations.all {
+              resolutionStrategy {
+                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0'
+              }
+          }
+          GRADLEEOF
+
       - name: Capacitor sync
         run: npx cap sync android
+
+      - name: Register LocalNotifications plugin in MainActivity
+        run: |
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
+          sed -i 's/import com.getcapacitor.BridgeActivity;/import com.getcapacitor.BridgeActivity;\nimport com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;/' "$MAIN_ACTIVITY"
+          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(android.os.Bundle savedInstanceState) {\n    registerPlugin(LocalNotificationsPlugin.class);\n    super.onCreate(savedInstanceState);\n  }/' "$MAIN_ACTIVITY"
 
       - name: Set app icon
         run: |
@@ -85,29 +158,9 @@ jobs:
 
           find android/app/src/main/res -name "launch_background.xml" | xargs -I{} sed -i 's/#ffffff/#4A0E0E/g; s/#FFFFFF/#4A0E0E/g' {} 2>/dev/null || true
 
-      - name: Register LocalNotifications plugin in MainActivity
-        run: |
-          MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
-          sed -i 's/import com.getcapacitor.BridgeActivity;/import com.getcapacitor.BridgeActivity;\nimport com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;/' "$MAIN_ACTIVITY"
-          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(android.os.Bundle savedInstanceState) {\n    registerPlugin(LocalNotificationsPlugin.class);\n    super.onCreate(savedInstanceState);\n  }/' "$MAIN_ACTIVITY"
-          cat "$MAIN_ACTIVITY"
-
       - name: Add permissions to AndroidManifest
         run: |
-          sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET" \/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" \/>\n    <uses-permission android:name="android.permission.VIBRATE" \/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
-
-      - name: Fix Kotlin duplicate
-        run: |
-          cat >> android/app/build.gradle << 'GRADLEEOF'
-
-          configurations.all {
-              resolutionStrategy {
-                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'
-                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0'
-                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0'
-              }
-          }
-          GRADLEEOF
+          sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET" \/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" \/>\n    <uses-permission android:name="android.permission.VIBRATE" \/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" \/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
