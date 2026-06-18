@@ -339,6 +339,10 @@ body{
       <span class="tab-icon">🍽️</span>
       <span class="tab-label">เมนูฉัน</span>
     </div>
+    <div class="tab" data-tab="settings">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">ตั้งค่า</span>
+    </div>
   </div>
 
   <!-- Pane: new -->
@@ -370,9 +374,12 @@ body{
     <div id="menu-item-list"></div>
   </div>
 
-</div>
+  <!-- Pane: settings -->
+  <div class="pane" id="pane-settings">
+    <div id="settings-content"></div>
+  </div>
 
-<div class="new-order-alert" id="new-order-alert">🔔 มีออเดอร์ใหม่!</div>
+</div>🔔 มีออเดอร์ใหม่!</div>
 <div class="gloading" id="global-loading"><div class="spinner"></div><div style="font-size:13px;color:var(--stone)">กำลังโหลด...</div></div>
 <div class="toast-wrap" id="toast-container"></div>
 
@@ -380,18 +387,20 @@ body{
 <script src="js/api.js"></script>
 <script src="js/partner-app.js"></script>
 <script src="js/partner-menu.js"></script>
+<script src="js/partner-settings.js"></script>
 <script>
   // ขอ permission แจ้งเตือนทันทีตอนเปิดแอพ
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  // เรียก initPartnerMenu หลัง login
+  // เรียก initPartnerMenu และ initPartnerSettings หลัง login
   const _origStart = window.startApp;
   window.startApp = function() {
     _origStart();
     setTimeout(() => {
       if (typeof initPartnerMenu === 'function') initPartnerMenu();
+      if (typeof initPartnerSettings === 'function') initPartnerSettings();
     }, 300);
   };
 
