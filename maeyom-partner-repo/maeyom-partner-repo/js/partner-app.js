@@ -152,6 +152,9 @@ function startApp() {
     document.getElementById('hdr-shop-name').textContent = PARTNER.name || PARTNER.id;
     setOnlineStatus(true);
 
+    // ✅ ตั้งค่า Notification Channel (Android 8+)
+    setupNotificationChannel();
+
     // แสดง logo ร้านใน header
     const logoWrap = document.getElementById('hdr-logo');
     if (logoWrap) {
@@ -456,20 +459,79 @@ function showNewOrderAlert() {
     setTimeout(() => el.classList.remove('show'), 6000);
 }
 
-function sendPushNotification(count) {
+// ============================================================
+// 🔔 Push Notification — รองรับทั้ง Web + Capacitor APK
+// ============================================================
+async function sendPushNotification(count) {
+    const title = '🔔 มีออเดอร์ใหม่' + (count > 1 ? ' ' + count + ' รายการ!' : '!');
+    const body  = 'แตะเพื่อเปิดแอพและรับออเดอร์';
+
+    // ✅ วิธีที่ 1: Capacitor Local Notifications (APK — ทำงานแม้แอพปิดอยู่)
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        try {
+            const { LocalNotifications } = window.Capacitor.Plugins;
+            if (LocalNotifications) {
+                // ขอ permission ก่อน
+                const perm = await LocalNotifications.requestPermissions();
+                if (perm.display === 'granted') {
+                    await LocalNotifications.schedule({
+                        notifications: [{
+                            id:       Date.now(),
+                            title:    title,
+                            body:     body,
+                            sound:    'default',
+                            smallIcon: 'ic_stat_icon_config_sample',
+                            iconColor: '#651713',
+                            channelId: 'partner_orders',
+                            extra: { type: 'new_order', count: String(count) },
+                        }]
+                    });
+                    return; // สำเร็จแล้ว ไม่ต้อง fallback
+                }
+            }
+        } catch(e) {
+            console.warn('[LocalNotif]', e.message);
+        }
+    }
+
+    // ✅ วิธีที่ 2: Web Notification API (browser / PWA — ทำงานตอนแอพเปิดอยู่)
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
-    const title = '🔔 มีออเดอร์ใหม่' + (count > 1 ? ' ' + count + ' รายการ' : '!');
-    const body  = 'กรุณาเข้าแอพเพื่อรับออเดอร์';
     try {
         new Notification(title, {
             body,
-            icon: 'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
+            icon:  'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
             badge: 'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
-            tag: 'new-order',
+            tag:   'new-order',
             renotify: true,
         });
     } catch(e) {}
+}
+
+// ============================================================
+// 🔔 ตั้งค่า Notification Channel (Android 8+)
+// เรียกตอน init ครั้งแรก
+// ============================================================
+async function setupNotificationChannel() {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
+    try {
+        const { LocalNotifications } = window.Capacitor.Plugins;
+        if (!LocalNotifications) return;
+        await LocalNotifications.createChannel({
+            id:          'partner_orders',
+            name:        'ออเดอร์ใหม่',
+            description: 'แจ้งเตือนเมื่อมีออเดอร์ใหม่เข้ามา',
+            importance:  5,          // IMPORTANCE_HIGH — ทำให้เด้งขึ้นมาบนหน้าจอ
+            visibility:  1,          // VISIBILITY_PUBLIC
+            vibration:   true,
+            lights:      true,
+            lightColor:  '#651713',
+            sound:       'default',
+        });
+        console.log('[Channel] partner_orders created');
+    } catch(e) {
+        console.warn('[Channel]', e.message);
+    }
 }
 
 function playNotificationSound() {
