@@ -27,7 +27,7 @@ jobs:
       - name: Init npm and install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/android @capacitor/cli
+          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/local-notifications
 
       - name: Create capacitor.config.json
         run: |
@@ -39,6 +39,13 @@ jobs:
             "server": {
               "url": "https://maeyompalece-sys.github.io/maeyom-palace-parther/",
               "cleartext": false
+            },
+            "plugins": {
+              "LocalNotifications": {
+                "smallIcon": "ic_stat_icon_config_sample",
+                "iconColor": "#651713",
+                "sound": "beep.wav"
+              }
             }
           }
           CAPEOF
@@ -51,6 +58,7 @@ jobs:
           cp maeyom-partner-repo/maeyom-partner-repo/js/api.js www/js/
           cp maeyom-partner-repo/maeyom-partner-repo/js/partner-app.js www/js/
           cp maeyom-partner-repo/maeyom-partner-repo/js/partner-menu.js www/js/
+          cp maeyom-partner-repo/maeyom-partner-repo/js/partner-settings.js www/js/
 
       - name: Add Android platform
         run: npx cap add android
