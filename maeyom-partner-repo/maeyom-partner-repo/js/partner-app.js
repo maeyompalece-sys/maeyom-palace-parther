@@ -632,6 +632,14 @@ function switchTab(tab) {
     document.querySelectorAll('.pane').forEach(p =>
         p.classList.toggle('active', p.id === 'pane-' + tab)
     );
+    // ✅ render settings เมื่อคลิก Tab ตั้งค่า
+    if (tab === 'settings' && typeof renderSettingsPane === 'function') {
+        renderSettingsPane();
+    }
+    // ✅ load menu เมื่อคลิก Tab เมนูฉัน
+    if (tab === 'menu' && typeof loadPartnerMenu === 'function') {
+        loadPartnerMenu();
+    }
 }
 
 // ============================================================
