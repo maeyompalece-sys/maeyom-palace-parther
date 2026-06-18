@@ -85,6 +85,13 @@ jobs:
 
           find android/app/src/main/res -name "launch_background.xml" | xargs -I{} sed -i 's/#ffffff/#4A0E0E/g; s/#FFFFFF/#4A0E0E/g' {} 2>/dev/null || true
 
+      - name: Register LocalNotifications plugin in MainActivity
+        run: |
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
+          sed -i 's/import com.getcapacitor.BridgeActivity;/import com.getcapacitor.BridgeActivity;\nimport com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;/' "$MAIN_ACTIVITY"
+          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(android.os.Bundle savedInstanceState) {\n    registerPlugin(LocalNotificationsPlugin.class);\n    super.onCreate(savedInstanceState);\n  }/' "$MAIN_ACTIVITY"
+          cat "$MAIN_ACTIVITY"
+
       - name: Add permissions to AndroidManifest
         run: |
           sed -i 's/<\/manifest>/    <uses-permission android:name="android.permission.INTERNET" \/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" \/>\n    <uses-permission android:name="android.permission.VIBRATE" \/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" \/>\n<\/manifest>/' android/app/src/main/AndroidManifest.xml
