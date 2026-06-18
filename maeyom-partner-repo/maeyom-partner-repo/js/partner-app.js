@@ -202,6 +202,20 @@ async function fetchOrders(initial = false) {
         renderAll();
         setOnlineStatus(true);
     } catch (err) {
+        // ✅ ถ้าบัญชีถูกระงับ — ล้าง session แล้วกลับหน้า login ทันที
+        if (err.message && err.message.includes('ACCOUNT_SUSPENDED')) {
+            stopPolling();
+            localStorage.removeItem('partner_session');
+            PARTNER.id = PARTNER.name = PARTNER.token = null;
+            showScreen('login');
+            // แสดง error บนหน้า login
+            const errEl = document.getElementById('login-err');
+            if (errEl) {
+                errEl.textContent = '⚠️ บัญชีของคุณถูกระงับ กรุณาติดต่อแอดมิน';
+                errEl.style.display = 'block';
+            }
+            return;
+        }
         setOnlineStatus(false);
         if (initial) showToast('โหลดออเดอร์ล้มเหลว: ' + err.message, 'error');
     } finally {
