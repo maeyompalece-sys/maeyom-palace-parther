@@ -132,6 +132,11 @@ body{
 
 /* ── PULL HINT ── */
 .pull-hint{text-align:center;padding:8px;font-size:11px;color:var(--mist)}
+.refresh-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#fff;border-bottom:1px solid var(--cream-dk,#e8e0d4);}
+.refresh-hint{font-size:11px;color:var(--mist,#aaa);}
+.btn-refresh{padding:5px 14px;background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;border-radius:20px;font-family:'Sarabun',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-refresh:hover{background:#FDE68A;}
+.btn-refresh:disabled{opacity:.5;cursor:not-allowed;}
 
 /* ── ORDER CARD ── */
 .order-card{
@@ -339,20 +344,23 @@ body{
       <span class="tab-icon">🍽️</span>
       <span class="tab-label">เมนูฉัน</span>
     </div>
-    <div class="tab" data-tab="settings">
-      <span class="tab-icon">⚙️</span>
-      <span class="tab-label">ตั้งค่า</span>
-    </div>
   </div>
 
   <!-- Pane: new -->
   <div class="pane active" id="pane-new">
-    <div class="pull-hint">⟳ refresh อัตโนมัติทุก 5 วินาที</div>
+    <div class="refresh-bar">
+      <span class="refresh-hint" id="refresh-hint-new">⟳ refresh อัตโนมัติทุก 5 วินาที</span>
+      <button class="btn-refresh" onclick="manualRefresh(this)" title="รีเฟรช">🔄 รีเฟรช</button>
+    </div>
     <div class="pane-list" id="list-new"></div>
   </div>
 
   <!-- Pane: active -->
   <div class="pane" id="pane-active">
+    <div class="refresh-bar">
+      <span class="refresh-hint">⟳ refresh อัตโนมัติทุก 5 วินาที</span>
+      <button class="btn-refresh" onclick="manualRefresh(this)" title="รีเฟรช">🔄 รีเฟรช</button>
+    </div>
     <div class="pane-list" id="list-active"></div>
   </div>
 
@@ -374,12 +382,9 @@ body{
     <div id="menu-item-list"></div>
   </div>
 
-  <!-- Pane: settings -->
-  <div class="pane" id="pane-settings">
-    <div id="settings-content"></div>
-  </div>
+</div>
 
-</div>🔔 มีออเดอร์ใหม่!</div>
+<div class="new-order-alert" id="new-order-alert">🔔 มีออเดอร์ใหม่!</div>
 <div class="gloading" id="global-loading"><div class="spinner"></div><div style="font-size:13px;color:var(--stone)">กำลังโหลด...</div></div>
 <div class="toast-wrap" id="toast-container"></div>
 
@@ -387,20 +392,18 @@ body{
 <script src="js/api.js"></script>
 <script src="js/partner-app.js"></script>
 <script src="js/partner-menu.js"></script>
-<script src="js/partner-settings.js"></script>
 <script>
   // ขอ permission แจ้งเตือนทันทีตอนเปิดแอพ
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  // เรียก initPartnerMenu และ initPartnerSettings หลัง login
+  // เรียก initPartnerMenu หลัง login
   const _origStart = window.startApp;
   window.startApp = function() {
     _origStart();
     setTimeout(() => {
       if (typeof initPartnerMenu === 'function') initPartnerMenu();
-      if (typeof initPartnerSettings === 'function') initPartnerSettings();
     }, 300);
   };
 
