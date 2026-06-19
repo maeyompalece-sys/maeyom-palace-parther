@@ -917,6 +917,23 @@ async function sendPushNotification(count) {
     const body  = 'แตะเพื่อเปิดแอพและรับออเดอร์';
 
     if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+        // ✅ ใช้ NativeNotify plugin ที่เขียนเอง แทน LocalNotifications.schedule()
+        // เพราะ LocalNotifications ของ Capacitor ผูก PendingIntent กับ Activity
+        // instance reference ที่ไม่เสถียร — บนเครื่อง Huawei/Honor ที่ kill
+        // background activity บ่อย ทำให้แตะ notification แล้วไม่เข้าแอป
+        // (พาไป Home screen แทน) NativeNotify ผูก PendingIntent กับ
+        // applicationContext + ComponentName ตรงๆ จึงทำงานได้แน่นอนกว่า
+        try {
+            const { NativeNotify } = window.Capacitor.Plugins;
+            if (NativeNotify) {
+                await NativeNotify.show({ title, body });
+                return;
+            }
+        } catch(e) {
+            console.warn('[NativeNotify]', e.message);
+        }
+
+        // Fallback — เผื่อ APK เก่าที่ยังไม่มี NativeNotify plugin (ยังไม่ได้ build ใหม่)
         try {
             const { LocalNotifications } = window.Capacitor.Plugins;
             if (LocalNotifications) {
