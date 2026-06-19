@@ -411,7 +411,7 @@ function orderCard(o, actions, isHistory = false) {
     `;
 
     return `
-    <div class="order-card status-${o.status}" data-order-id="${o.id}">
+    <div class="order-card status-${o.status}" data-order-id="${o.id}" style="cursor:pointer;">
         <div class="oc-head">
             <div>
                 <div class="oc-num">#${esc(o.order_number || o.id)}</div>
@@ -447,8 +447,17 @@ function actionBtn(action, orderId) {
 }
 
 function bindCardButtons(container) {
+    // คลิกที่ตัวการ์ดเอง (ที่ไม่ใช่ปุ่ม) — เปิด pop-up รายละเอียด
+    container.querySelectorAll('.order-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const orderId = card.dataset.orderId;
+            openOrderModal(orderId);
+        });
+    });
+
     container.querySelectorAll('.btn-action').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const action  = btn.dataset.action;
             const orderId = btn.dataset.orderId;
             handleOrderAction(action, orderId, btn);
