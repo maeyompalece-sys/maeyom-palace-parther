@@ -33,6 +33,10 @@ const STATUS_META = {
 document.addEventListener('DOMContentLoaded', () => {
     tryRestoreSession();
 
+    // ✅ ลงทะเบียน listener ดักการแตะ local notification (Capacitor APK)
+    // ต้องเรียกครั้งเดียวตอนเริ่มแอป ไม่ผูกกับ login state
+    setupNotificationClickListener();
+
     document.getElementById('btn-login').addEventListener('click', handleLogin);
     document.getElementById('inp-partner-pass').addEventListener('keydown', e => {
         if (e.key === 'Enter') handleLogin();
@@ -941,14 +945,53 @@ async function sendPushNotification(count) {
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     try {
-        new Notification(title, {
+        const notif = new Notification(title, {
             body,
             icon:  'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
             badge: 'https://maeyompalece-sys.github.io/maeyom-palace/images/icon-192.png',
             tag:   'new-order',
             renotify: true,
         });
+        // ✅ กดที่ notification แล้วพาโฟกัสกลับมาที่แท็บ/หน้าต่างแอปนี้ทันที
+        notif.onclick = function() {
+            try {
+                window.focus();
+                if (parent && parent.focus) parent.focus();
+            } catch(e) {}
+            // เปิดแท็บออเดอร์ใหม่ให้เลย
+            try { switchTab('new'); } catch(e) {}
+            notif.close();
+        };
     } catch(e) {}
+}
+
+// ============================================================
+// 🔔 ลงทะเบียน Listener สำหรับการแตะ Local Notification (Capacitor APK)
+// ต้องเรียกครั้งเดียวตอน app เริ่มทำงาน — ไม่ใช่ทุกครั้งที่ส่ง notification
+// ============================================================
+function setupNotificationClickListener() {
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
+    try {
+        const { LocalNotifications } = window.Capacitor.Plugins;
+        if (!LocalNotifications || !LocalNotifications.addListener) return;
+        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+            try {
+                // ดึงแอปขึ้นมา foreground (Capacitor จะ resume เองอยู่แล้วเมื่อแตะ notification
+                // แต่กันไว้สำหรับบาง Android version ที่ค้างอยู่ background)
+                if (window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.minimizeApp) {
+                    // no-op — แค่กันไว้เผื่ออนาคตต้องการ custom logic เพิ่ม
+                }
+                // พาเข้าแท็บ "ออเดอร์ใหม่" ทันทีที่แตะ notification
+                showScreen('app');
+                switchTab('new');
+                fetchOrders(false);
+            } catch(e) {
+                console.warn('[NotifClick]', e.message);
+            }
+        });
+    } catch(e) {
+        console.warn('[NotifClickListenerSetup]', e.message);
+    }
 }
 
 // ============================================================
