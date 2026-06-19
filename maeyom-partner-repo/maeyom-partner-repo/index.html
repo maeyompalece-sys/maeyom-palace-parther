@@ -168,7 +168,7 @@ body{
 .oc-item-note{font-size:11px;color:var(--stone);margin-left:4px}
 .oc-total{display:flex;justify-content:space-between;font-size:14px;font-weight:700;padding-top:6px;border-top:1px dashed var(--cream-dk);margin-top:5px;color:var(--em)}
 .oc-notes{margin:0 12px 8px;font-size:12px;color:var(--stone);background:#FFFBF0;border-radius:6px;padding:7px 9px;border-left:3px solid var(--gold)}
-.oc-actions{padding:8px 12px 12px;display:flex;gap:7px}
+.oc-actions{padding:8px 12px 4px;display:flex;gap:7px}
 .btn-act{
   flex:1;padding:10px 6px;border-radius:var(--r-sm);border:none;
   font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;
@@ -177,6 +177,35 @@ body{
 }
 .btn-act:active{transform:scale(.96)}
 .btn-act:disabled{opacity:.45;cursor:not-allowed}
+.btn-accept {background:#DBEAFE;color:#1E40AF}
+.btn-cook   {background:#FEF0E7;color:#9A3412}
+.btn-ready  {background:#D1FAE5;color:#065F46}
+.btn-done   {background:linear-gradient(135deg,var(--em),var(--em-dk));color:var(--gold-lt)}
+.btn-cancel {background:#FEE2E2;color:#991B1B}
+
+/* ── ปุ่มเครื่องมือ (เครื่องมือในการ์ด) ── */
+.oc-tools{
+  display:flex;gap:6px;padding:6px 12px 10px;
+  border-top:1px solid var(--cream-dk);
+}
+.oc-tool-btn{
+  flex:1;padding:7px 4px;border-radius:var(--r-sm);border:1.5px solid var(--cream-dk);
+  background:#fff;font-size:15px;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;
+  color:var(--stone);
+}
+.oc-tool-btn:active{transform:scale(.94)}
+.oc-tool-btn:hover{background:var(--cream);border-color:var(--mist)}
+.btn-tool-delete:hover{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+
+/* ── ACTION BUTTONS ── */
+.btn-action{
+  flex:1;padding:10px 6px;border-radius:var(--r-sm);border:none;
+  font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .15s;
+}
+.btn-action:active{transform:scale(.96)}
+.btn-action:disabled{opacity:.45;cursor:not-allowed}
 .btn-accept {background:#DBEAFE;color:#1E40AF}
 .btn-cook   {background:#FEF0E7;color:#9A3412}
 .btn-ready  {background:#D1FAE5;color:#065F46}
@@ -196,43 +225,26 @@ body{
   font-family:'Sarabun',sans-serif;font-size:12px;font-weight:600;
   color:var(--stone);cursor:pointer;transition:all .2s;
 }
-.fc.active{background:var(--em);color:var(--gold-lt);border-color:var(--em)}
-
-/* ── MENU PANE ── */
-.menu-add-bar{
-  padding:10px;background:#fff;
-  border-bottom:1px solid var(--cream-dk);
-  flex-shrink:0;
-  position:sticky;top:0;z-index:10;
-}
-.btn-add-menu{
-  width:100%;padding:12px;
-  background:linear-gradient(135deg,var(--em),var(--em-dk));
-  color:var(--gold-lt);border:none;border-radius:var(--r);
-  font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;
-  cursor:pointer;letter-spacing:.02em;
-}
-#menu-item-list{padding:10px;display:flex;flex-direction:column;gap:9px}
+.fc.active{background:var(--em);color:#fff;border-color:var(--em)}
 
 /* ── EMPTY STATE ── */
 .empty-state{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  gap:10px;padding:48px 24px;color:var(--mist);
+  text-align:center;padding:48px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
 }
-.es-icon{font-size:48px}
-.es-title{font-size:16px;font-weight:600;color:var(--stone)}
-.es-sub{font-size:13px;text-align:center;line-height:1.5}
+.es-icon{font-size:44px;opacity:.4}
+.es-title{font-size:15px;font-weight:700;color:var(--stone)}
+.es-sub{font-size:12px;color:var(--mist)}
 
-/* ── ALERT ── */
-@keyframes ring{0%,100%{transform:scale(1) translateX(-50%)}25%{transform:scale(1.1) translateX(-50%)}75%{transform:scale(1.06) translateX(-50%)}}
+/* ── NEW ORDER ALERT ── */
 .new-order-alert{
-  display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
-  background:linear-gradient(135deg,var(--em),var(--em-dk));
-  color:var(--gold-lt);padding:12px 22px;border-radius:26px;
-  font-size:15px;font-weight:700;box-shadow:0 6px 20px rgba(101,23,19,.4);
-  z-index:200;cursor:pointer;white-space:nowrap;
+  display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--em),var(--em-dk));color:#fff;
+  padding:10px 20px;border-radius:24px;box-shadow:0 4px 20px rgba(101,23,19,.5);
+  font-size:14px;font-weight:700;cursor:pointer;z-index:9990;
+  align-items:center;gap:7px;
 }
+@keyframes ring{0%,100%{transform:translateX(-50%) rotate(0)}25%{transform:translateX(-50%) rotate(-4deg)}75%{transform:translateX(-50%) rotate(4deg)}}
 .new-order-alert.show{display:flex;align-items:center;gap:7px;animation:ring .5s ease 3}
 
 /* ── TOAST ── */
@@ -269,6 +281,48 @@ body{
   border-radius:50%;animation:spin .65s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── MODAL BACKDROP ── */
+.modal-backdrop{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.55);z-index:9995;
+  align-items:flex-end;justify-content:center;
+  padding:0;
+}
+.modal-backdrop.show{display:flex}
+
+/* ── MODAL SHEET ── */
+.modal-sheet{
+  background:#fff;border-radius:20px 20px 0 0;
+  width:100%;max-width:520px;
+  max-height:90vh;overflow-y:auto;
+  padding:20px 18px 32px;
+  animation:sheetUp .28s cubic-bezier(.32,.72,0,1);
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{
+  width:40px;height:4px;border-radius:2px;
+  background:var(--cream-dk);margin:0 auto 16px;
+}
+.modal-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:19px;font-weight:600;color:var(--em);
+  margin-bottom:14px;
+}
+
+/* ── EDIT ITEM ROW ── */
+.edit-item-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;
+  background:var(--cream);
+  transition:opacity .2s;
+}
+
+/* ── order-badge ── */
+.order-badge{
+  font-size:11px;font-weight:700;padding:4px 10px;
+  border-radius:16px;white-space:nowrap;flex-shrink:0;
+}
 </style>
 </head>
 <body>
@@ -393,6 +447,22 @@ body{
 
 </div>
 
+<!-- ── ORDER DETAIL MODAL ── -->
+<div class="modal-backdrop" id="order-modal-backdrop">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="order-modal-content"></div>
+  </div>
+</div>
+
+<!-- ── EDIT ORDER MODAL ── -->
+<div class="modal-backdrop" id="edit-modal-backdrop">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <div id="edit-modal-content"></div>
+  </div>
+</div>
+
 <div class="new-order-alert" id="new-order-alert">🔔 มีออเดอร์ใหม่!</div>
 <div class="gloading" id="global-loading"><div class="spinner"></div><div style="font-size:13px;color:var(--stone)">กำลังโหลด...</div></div>
 <div class="toast-wrap" id="toast-container"></div>
@@ -403,12 +473,10 @@ body{
 <script src="js/partner-menu.js"></script>
 <script src="js/partner-settings.js"></script>
 <script>
-  // ขอ permission แจ้งเตือนทันทีตอนเปิดแอพ
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  // เรียก initPartnerMenu หลัง login
   const _origStart = window.startApp;
   window.startApp = function() {
     _origStart();
@@ -417,7 +485,6 @@ body{
     }, 300);
   };
 
-  // history filter chips
   document.querySelectorAll('.fc').forEach(chip => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.fc').forEach(c => c.classList.remove('active'));
