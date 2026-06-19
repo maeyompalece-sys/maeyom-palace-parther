@@ -149,17 +149,58 @@ function startApp() {
 
     setupNotificationChannel();
 
-    const logoWrap = document.getElementById('hdr-logo');
-    if (logoWrap) {
-        if (PARTNER.logoUrl) {
-            logoWrap.innerHTML = `<img src="${PARTNER.logoUrl}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.3);">`;
-        } else {
-            logoWrap.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>`;
-        }
-    }
+    // แสดง logo จาก cache ก่อน (กันหน้าจอกระพริบ) แล้วค่อย sync ของจริงทับ
+    renderHeaderLogo();
+
+    // ✅ ดึงข้อมูลโปรไฟล์ร้านล่าสุดจาก server ทุกครั้งที่เปิดแอป
+    // (กันไม่ให้ชื่อร้าน/โลโก้ค้างเป็นค่าเก่าบนเครื่อง/แพลตฟอร์มอื่นที่ login ค้างไว้นาน
+    //  เพราะเดิม tryRestoreSession() ดึงค่าจาก localStorage ของเครื่องนั้นอย่างเดียว
+    //  ไม่เคยถาม backend ใหม่ จนกว่าจะ logout แล้ว login ใหม่)
+    syncPartnerProfile();
 
     fetchOrders(true);
     startPolling();
+}
+
+function renderHeaderLogo() {
+    const logoWrap = document.getElementById('hdr-logo');
+    if (!logoWrap) return;
+    if (PARTNER.logoUrl) {
+        logoWrap.innerHTML = `<img src="${PARTNER.logoUrl}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid rgba(255,255,255,.3);">`;
+    } else {
+        logoWrap.innerHTML = `<div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>`;
+    }
+}
+
+async function syncPartnerProfile() {
+    try {
+        const data = await API.call('getPartners', {});
+        const me = (data.partners || []).find(p =>
+            String(p.partnerId).toUpperCase() === String(PARTNER.id).toUpperCase()
+        );
+        if (!me) return;
+
+        const changed = (me.partnerName || '') !== (PARTNER.name || '')
+                      || (me.logoUrl     || '') !== (PARTNER.logoUrl || '');
+        if (!changed) return;
+
+        // อัปเดต state + UI ให้ตรงกับข้อมูลล่าสุดบน server
+        PARTNER.name    = me.partnerName || PARTNER.name;
+        PARTNER.logoUrl = me.logoUrl     || '';
+        document.getElementById('hdr-shop-name').textContent = PARTNER.name || PARTNER.id;
+        renderHeaderLogo();
+
+        // sync กลับเข้า localStorage ของเครื่องนี้ด้วย
+        try {
+            const saved = JSON.parse(localStorage.getItem('partner_session') || '{}');
+            saved.name    = PARTNER.name;
+            saved.logoUrl = PARTNER.logoUrl;
+            localStorage.setItem('partner_session', JSON.stringify(saved));
+        } catch(e) {}
+    } catch(e) {
+        // เงียบๆ ถ้า sync ไม่สำเร็จ — ใช้ค่า cache เดิมต่อไป ไม่กระทบการทำงานหลัก
+        console.warn('[syncPartnerProfile]', e.message);
+    }
 }
 
 async function requestNotificationPermission() {
