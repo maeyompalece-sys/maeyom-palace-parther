@@ -151,14 +151,24 @@ jobs:
           # ตรงนี้ WebView จะไม่ได้รับรู้ event ใดๆ เลยจากการแตะ
           sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(Bundle savedInstanceState) {\n    super.onCreate(savedInstanceState);\n    registerPlugin(LocalNotificationsPlugin.class);\n  }\n\n  @Override\n  public void onNewIntent(Intent intent) {\n    super.onNewIntent(intent);\n    setIntent(intent);\n  }\n\n  @Override\n  protected void onResume() {\n    super.onResume();\n    if (this.bridge != null \&\& this.bridge.getWebView() != null) {\n      this.bridge.getWebView().post(new Runnable() {\n        @Override\n        public void run() {\n          if (bridge.getWebView() != null) {\n            bridge.getWebView().evaluateJavascript(\n              "window.dispatchEvent(new Event(\\\"maeyomAppResumed\\\"));", null);\n          }\n        }\n      });\n    }\n  }/' "$MAIN_ACTIVITY"
 
-      - name: Set launchMode singleTask in AndroidManifest
+      - name: Set launchMode singleTask in AndroidManifest (only if not already present)
         run: |
           # singleTask ป้องกันไม่ให้ Android สร้าง Activity ใหม่ซ้อนทับเวลาแตะ
           # notification ขณะแอปเปิดอยู่แล้วใน background — ถ้าไม่ตั้งตรงนี้
           # ระบบอาจ "เปิดแอปขึ้นมา" แต่จริงๆ คือสร้าง instance ใหม่ที่ว่างเปล่า
           # ไม่ใช่ instance เดิมที่ login ค้างอยู่ ทำให้ดูเหมือน "กดแล้วไม่เข้า"
+          #
+          # ⚠️ Capacitor บางเวอร์ชัน generate AndroidManifest.xml ที่มี
+          # android:launchMode="singleTask" ติดมาเป็นค่า default อยู่แล้ว
+          # ต้องเช็คก่อนเสมอ ไม่งั้นจะได้ attribute ซ้ำกัน 2 ครั้งในแท็กเดียว
+          # ซึ่งทำให้ processDebugManifest ล้มเหลวทันที (invalid XML)
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's/android:name=".MainActivity"/android:name=".MainActivity"\n            android:launchMode="singleTask"/' "$MANIFEST"
+          if grep -q 'android:launchMode=' "$MANIFEST"; then
+            echo "✅ launchMode มีอยู่แล้วใน AndroidManifest.xml — ข้ามขั้นตอนนี้"
+          else
+            sed -i 's/android:name=".MainActivity"/android:name=".MainActivity"\n            android:launchMode="singleTask"/' "$MANIFEST"
+            echo "✅ เพิ่ม launchMode=\"singleTask\" แล้ว"
+          fi
 
       - name: Set app icon
         run: |
