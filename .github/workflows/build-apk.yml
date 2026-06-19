@@ -151,6 +151,143 @@ jobs:
           # ตรงนี้ WebView จะไม่ได้รับรู้ event ใดๆ เลยจากการแตะ
           sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(Bundle savedInstanceState) {\n    super.onCreate(savedInstanceState);\n    registerPlugin(LocalNotificationsPlugin.class);\n  }\n\n  @Override\n  public void onNewIntent(Intent intent) {\n    super.onNewIntent(intent);\n    setIntent(intent);\n  }\n\n  @Override\n  public void onResume() {\n    super.onResume();\n    if (this.bridge != null \&\& this.bridge.getWebView() != null) {\n      this.bridge.getWebView().post(new Runnable() {\n        @Override\n        public void run() {\n          if (bridge.getWebView() != null) {\n            bridge.getWebView().evaluateJavascript(\n              "window.dispatchEvent(new Event(\\\"maeyomAppResumed\\\"));", null);\n          }\n        }\n      });\n    }\n  }/' "$MAIN_ACTIVITY"
 
+      - name: Add custom NativeNotify plugin (bypass unreliable activity ref in LocalNotifications)
+        run: |
+          # ============================================================
+          # 🔧 สาเหตุของปัญหา "แตะ notification แล้วไม่เข้าแอป บน Huawei/Honor":
+          #
+          # @capacitor/local-notifications ปลั๊กอินสร้าง PendingIntent โดยอ้างอิงจาก
+          # `activity.getClass()` (Activity instance ที่จำตอน schedule() ถูกเรียก)
+          # ดู: LocalNotificationManager.java -> buildIntent()
+          #   if (activity != null) intent = new Intent(context, activity.getClass());
+          #   else intent = getLaunchIntentForPackage(packageName);  // fallback
+          #
+          # Huawei/Honor (EMUI/MagicOS) มีระบบจัดการหน่วยความจำที่ aggressive กว่า stock
+          # Android มาก — มักจะ kill หรือทำลาย Activity reference เดิมทิ้งทันทีที่แอป
+          # ถูก minimize ไปสักพัก แม้จะเปิด Auto-launch/Run in background ครบแล้วก็ตาม
+          # เมื่อ activity reference เป็น null/stale ตอนที่ notification ถูกแตะ ปลั๊กอิน
+          # จะ fallback ไปใช้ getLaunchIntentForPackage() ซึ่งบางอุปกรณ์/launcher (โดยเฉพาะ
+          # EMUI/MagicOS) จะตีความ Intent นี้เป็นการเปิด "launcher" เฉยๆ ไม่ใช่ resume
+          # Activity instance เดิม ทำให้ระบบพา user กลับไป Home screen แทน
+          #
+          # ✅ ทางแก้: เขียน native notification เอง ผูก PendingIntent กับ
+          # applicationContext + ComponentName ของ MainActivity ตรงๆ แบบ explicit
+          # (ไม่อิง activity instance reference ที่ไม่เสถียรเลย) จึงทำงานได้แน่นอน
+          # ไม่ว่า Activity จะถูก background-kill ไปแล้วหรือไม่ก็ตาม
+          # ============================================================
+
+          PKG_DIR=$(dirname "$(find android/app/src/main/java -name MainActivity.java)")
+          NOTIFY_FILE="$PKG_DIR/NativeNotifyPlugin.java"
+
+          cat > "$NOTIFY_FILE" << 'JAVAEOF'
+          package com.maeyom.partner;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.ComponentName;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          import androidx.core.app.NotificationCompat;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "NativeNotify")
+          public class NativeNotifyPlugin extends Plugin {
+
+              private static final String CHANNEL_ID = "partner_orders";
+
+              @Override
+              public void load() {
+                  super.load();
+                  createChannel();
+              }
+
+              private void createChannel() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      Context context = getContext().getApplicationContext();
+                      NotificationManager nm = context.getSystemService(NotificationManager.class);
+                      NotificationChannel channel = new NotificationChannel(
+                          CHANNEL_ID,
+                          "ออเดอร์ใหม่",
+                          NotificationManager.IMPORTANCE_HIGH
+                      );
+                      channel.setDescription("แจ้งเตือนเมื่อมีออเดอร์ใหม่เข้ามา");
+                      channel.enableVibration(true);
+                      channel.enableLights(true);
+                      channel.setLightColor(0xFF651713);
+                      nm.createNotificationChannel(channel);
+                  }
+              }
+
+              // ✅ เรียกจาก JS แทน LocalNotifications.schedule()
+              // ผูก PendingIntent กับ applicationContext + explicit ComponentName ของ
+              // MainActivity ตรงๆ ไม่อิง Activity instance reference ของปลั๊กอินเดิม
+              // ที่ไม่เสถียรบนเครื่อง Huawei/Honor ที่ kill background activity บ่อย
+              @PluginMethod
+              public void show(PluginCall call) {
+                  String title = call.getString("title", "🔔 มีออเดอร์ใหม่");
+                  String body  = call.getString("body", "แตะเพื่อเปิดแอพ");
+                  int notifId  = (int) System.currentTimeMillis();
+
+                  Context appContext = getContext().getApplicationContext();
+
+                  // ✅ Explicit Intent ชี้ไปที่ MainActivity ตรงๆ ผ่าน ComponentName
+                  // (ไม่ใช่ activity.getClass() ที่อาจเป็น null/stale)
+                  Intent intent = new Intent();
+                  intent.setComponent(new ComponentName(appContext, MainActivity.class));
+                  intent.setFlags(
+                      Intent.FLAG_ACTIVITY_NEW_TASK |
+                      Intent.FLAG_ACTIVITY_CLEAR_TOP |
+                      Intent.FLAG_ACTIVITY_SINGLE_TOP
+                  );
+                  intent.setAction(Intent.ACTION_MAIN);
+                  intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                  intent.putExtra("from_notification", true);
+
+                  int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                      flags |= PendingIntent.FLAG_IMMUTABLE;
+                  }
+
+                  PendingIntent pendingIntent = PendingIntent.getActivity(
+                      appContext, notifId, intent, flags
+                  );
+
+                  NotificationCompat.Builder builder = new NotificationCompat.Builder(appContext, CHANNEL_ID)
+                      .setSmallIcon(android.R.drawable.ic_dialog_info)
+                      .setContentTitle(title)
+                      .setContentText(body)
+                      .setPriority(NotificationCompat.PRIORITY_HIGH)
+                      .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                      .setAutoCancel(true)
+                      .setContentIntent(pendingIntent)
+                      .setDefaults(Notification.DEFAULT_ALL);
+
+                  NotificationManager nm = (NotificationManager) appContext.getSystemService(Context.NOTIFICATION_SERVICE);
+                  nm.notify(notifId, builder.build());
+
+                  JSObject ret = new JSObject();
+                  ret.put("id", notifId);
+                  call.resolve(ret);
+              }
+          }
+          JAVAEOF
+
+          echo "✅ สร้าง NativeNotifyPlugin.java แล้วที่: $NOTIFY_FILE"
+
+      - name: Register NativeNotify plugin in MainActivity
+        run: |
+          MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
+          sed -i 's/import com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;/import com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;\nimport com.maeyom.partner.NativeNotifyPlugin;/' "$MAIN_ACTIVITY"
+          sed -i 's/registerPlugin(LocalNotificationsPlugin.class);/registerPlugin(LocalNotificationsPlugin.class);\n    registerPlugin(NativeNotifyPlugin.class);/' "$MAIN_ACTIVITY"
+          echo "✅ ลงทะเบียน NativeNotifyPlugin แล้ว"
+
       - name: Set launchMode singleTask in AndroidManifest (only if not already present)
         run: |
           # singleTask ป้องกันไม่ให้ Android สร้าง Activity ใหม่ซ้อนทับเวลาแตะ
