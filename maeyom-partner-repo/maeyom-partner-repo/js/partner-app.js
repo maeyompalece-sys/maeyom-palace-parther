@@ -970,24 +970,36 @@ async function sendPushNotification(count) {
 // ต้องเรียกครั้งเดียวตอน app เริ่มทำงาน — ไม่ใช่ทุกครั้งที่ส่ง notification
 // ============================================================
 function setupNotificationClickListener() {
+    // ✅ ฟังก์ชันกลางที่พาเข้าแท็บออเดอร์ใหม่ + รีเฟรชข้อมูล
+    // เรียกได้จากหลายทาง: แตะ notification ตรงๆ, native resume event,
+    // หรือ visibilitychange (กรณีสลับแอปกลับมาด้วยมือ)
+    function goToNewOrdersAndRefresh() {
+        try {
+            showScreen('app');
+            switchTab('new');
+            fetchOrders(false);
+        } catch(e) {
+            console.warn('[NotifClick]', e.message);
+        }
+    }
+    window._goToNewOrdersAndRefresh = goToNewOrdersAndRefresh;
+
+    // ✅ Event ที่ native ฝั่ง MainActivity.onResume() ยิงเข้ามาทาง
+    // evaluateJavascript — ทำงานได้แม้ JS listener ของปลั๊กอินจะไม่ถูก trigger
+    // (กรณี WebView ถูก suspend ไปนานจนแอปอยู่ background)
+    window.addEventListener('maeyomAppResumed', () => {
+        // รีเฟรชข้อมูลเสมอตอน resume แต่ไม่บังคับสลับแท็บ ถ้าผู้ใช้ไม่ได้มาจาก notification
+        // (ป้องกันแย่งโฟกัสตอนผู้ใช้แค่สลับแอปไปมาเฉยๆ)
+        try { fetchOrders(false); } catch(e) {}
+    });
+
     if (!window.Capacitor || !window.Capacitor.isNativePlatform || !window.Capacitor.isNativePlatform()) return;
     try {
         const { LocalNotifications } = window.Capacitor.Plugins;
         if (!LocalNotifications || !LocalNotifications.addListener) return;
-        LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
-            try {
-                // ดึงแอปขึ้นมา foreground (Capacitor จะ resume เองอยู่แล้วเมื่อแตะ notification
-                // แต่กันไว้สำหรับบาง Android version ที่ค้างอยู่ background)
-                if (window.Capacitor.Plugins.App && window.Capacitor.Plugins.App.minimizeApp) {
-                    // no-op — แค่กันไว้เผื่ออนาคตต้องการ custom logic เพิ่ม
-                }
-                // พาเข้าแท็บ "ออเดอร์ใหม่" ทันทีที่แตะ notification
-                showScreen('app');
-                switchTab('new');
-                fetchOrders(false);
-            } catch(e) {
-                console.warn('[NotifClick]', e.message);
-            }
+        LocalNotifications.addListener('localNotificationActionPerformed', () => {
+            // แตะ notification โดยตรง — พาเข้าแท็บออเดอร์ใหม่ทันที
+            goToNewOrdersAndRefresh();
         });
     } catch(e) {
         console.warn('[NotifClickListenerSetup]', e.message);
