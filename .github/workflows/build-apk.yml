@@ -27,7 +27,7 @@ jobs:
       - name: Init npm and install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/local-notifications @capacitor-firebase/messaging
+          npm install @capacitor/core @capacitor/android @capacitor/cli @capacitor/local-notifications @capacitor/app @capacitor-firebase/messaging
 
       - name: Create capacitor.config.json
         run: |
@@ -133,11 +133,32 @@ jobs:
       - name: Capacitor sync
         run: npx cap sync android
 
-      - name: Register LocalNotifications plugin in MainActivity
+      - name: Register plugins and fix notification tap handling in MainActivity
         run: |
           MAIN_ACTIVITY=$(find android/app/src/main/java -name "MainActivity.java" | head -1)
-          sed -i 's/import com.getcapacitor.BridgeActivity;/import com.getcapacitor.BridgeActivity;\nimport com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;/' "$MAIN_ACTIVITY"
-          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(android.os.Bundle savedInstanceState) {\n    registerPlugin(LocalNotificationsPlugin.class);\n    super.onCreate(savedInstanceState);\n  }/' "$MAIN_ACTIVITY"
+
+          # เพิ่ม import ที่จำเป็น
+          sed -i 's/import com.getcapacitor.BridgeActivity;/import com.getcapacitor.BridgeActivity;\nimport com.capacitorjs.plugins.localnotifications.LocalNotificationsPlugin;\nimport android.content.Intent;\nimport android.os.Bundle;/' "$MAIN_ACTIVITY"
+
+          # registerPlugin ต้องอยู่ "หลัง" super.onCreate() เพราะ Capacitor bridge
+          # ถูกสร้างใน super.onCreate() — เรียกก่อนหน้านั้นจะทำให้ plugin
+          # ไม่ผูกกับ bridge ที่ถูกต้อง โดยเฉพาะตอน cold-start จากการแตะ notification
+          # ขณะแอปถูก kill ไปจาก background แล้ว
+          #
+          # เพิ่ม onNewIntent() ด้วย — จำเป็นสำหรับกรณีแอปยังมีชีวิตอยู่ใน background
+          # (ไม่ถูก kill) แล้วผู้ใช้แตะ notification ซ้ำ Android จะส่ง Intent ใหม่
+          # เข้ามาทาง onNewIntent() แทนที่จะสร้าง Activity ใหม่ ถ้าไม่ override
+          # ตรงนี้ WebView จะไม่ได้รับรู้ event ใดๆ เลยจากการแตะ
+          sed -i 's/public class MainActivity extends BridgeActivity {/public class MainActivity extends BridgeActivity {\n  @Override\n  public void onCreate(Bundle savedInstanceState) {\n    super.onCreate(savedInstanceState);\n    registerPlugin(LocalNotificationsPlugin.class);\n  }\n\n  @Override\n  public void onNewIntent(Intent intent) {\n    super.onNewIntent(intent);\n    setIntent(intent);\n  }\n\n  @Override\n  protected void onResume() {\n    super.onResume();\n    if (this.bridge != null \&\& this.bridge.getWebView() != null) {\n      this.bridge.getWebView().post(new Runnable() {\n        @Override\n        public void run() {\n          if (bridge.getWebView() != null) {\n            bridge.getWebView().evaluateJavascript(\n              "window.dispatchEvent(new Event(\\\"maeyomAppResumed\\\"));", null);\n          }\n        }\n      });\n    }\n  }/' "$MAIN_ACTIVITY"
+
+      - name: Set launchMode singleTask in AndroidManifest
+        run: |
+          # singleTask ป้องกันไม่ให้ Android สร้าง Activity ใหม่ซ้อนทับเวลาแตะ
+          # notification ขณะแอปเปิดอยู่แล้วใน background — ถ้าไม่ตั้งตรงนี้
+          # ระบบอาจ "เปิดแอปขึ้นมา" แต่จริงๆ คือสร้าง instance ใหม่ที่ว่างเปล่า
+          # ไม่ใช่ instance เดิมที่ login ค้างอยู่ ทำให้ดูเหมือน "กดแล้วไม่เข้า"
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          sed -i 's/android:name=".MainActivity"/android:name=".MainActivity"\n            android:launchMode="singleTask"/' "$MANIFEST"
 
       - name: Set app icon
         run: |
